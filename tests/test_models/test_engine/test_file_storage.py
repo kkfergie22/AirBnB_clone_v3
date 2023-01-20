@@ -16,8 +16,9 @@ from models.state import State
 from models.user import User
 import json
 import os
-import pep8
+import pycodestyle
 import unittest
+
 FileStorage = file_storage.FileStorage
 classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
            "Place": Place, "Review": Review, "State": State, "User": User}
@@ -32,14 +33,14 @@ class TestFileStorageDocs(unittest.TestCase):
 
     def test_pep8_conformance_file_storage(self):
         """Test that models/engine/file_storage.py conforms to PEP8."""
-        pep8s = pep8.StyleGuide(quiet=True)
+        pep8s = pycodestyle.StyleGuide(quiet=True)
         result = pep8s.check_files(['models/engine/file_storage.py'])
         self.assertEqual(result.total_errors, 0,
                          "Found code style errors (and warnings).")
 
     def test_pep8_conformance_test_file_storage(self):
         """Test tests/test_models/test_file_storage.py conforms to PEP8."""
-        pep8s = pep8.StyleGuide(quiet=True)
+        pep8s = pycodestyle.StyleGuide(quiet=True)
         result = pep8s.check_files(['tests/test_models/test_engine/\
 test_file_storage.py'])
         self.assertEqual(result.total_errors, 0,
@@ -113,3 +114,62 @@ class TestFileStorage(unittest.TestCase):
         with open("file.json", "r") as f:
             js = f.read()
         self.assertEqual(json.loads(string), json.loads(js))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def setUp(self):
+        """Sets up test methods"""
+        self.storage = FileStorage()
+        self.bm = BaseModel()
+        self.u = User()
+        self.p = Place()
+        self.s = State()
+        self.c = City()
+        self.a = Amenity()
+        self.r = Review()
+        self.storage.save()
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_get(self):
+        """Tests the get method"""
+        self.assertEqual(self.storage.get(BaseModel, self.bm.id), self.bm)
+        self.assertEqual(self.storage.get(User, self.u.id), self.u)
+        self.assertEqual(self.storage.get(Place, self.p.id), self.p)
+        self.assertEqual(self.storage.get(State, self.s.id), self.s)
+        self.assertEqual(self.storage.get(City, self.c.id), self.c)
+        self.assertEqual(self.storage.get(Amenity, self.a.id), self.a)
+        self.assertEqual(self.storage.get(Review, self.r.id), self.r)
+        self.assertIsNone(self.storage.get(Review, "fake_id"))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count(self):
+        """Tests the count method"""
+        self.storage.new(self.bm)
+        self.storage.new(self.u)
+        self.storage.new(self.p)
+        self.storage.new(self.s)
+        self.storage.new(self.c)
+        self.storage.new(self.a)
+        self.storage.new(self.r)
+        self.assertEqual(self.storage.count(), 7)
+        self.assertEqual(self.storage.count(BaseModel), 1)
+        self.assertEqual(self.storage.count(User), 1)
+        self.assertEqual(self.storage.count(Place), 1)
+        self.assertEqual(self.storage.count(State), 1)
+        self.assertEqual(self.storage.count(City), 1)
+        self.assertEqual(self.storage.count(Amenity), 1)
+        self.assertEqual(self.storage.count(Review), 1)
+        self.assertEqual(self.storage.count(object), 0)
+        with self.assertRaises(TypeError):
+            self.storage.count(int)
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_reload(self):
+        """Tests the reload method"""
+        # create a new file_storage object and save it
+        st = FileStorage()
+        st.save()
+        # remove the file
+        import os
+        os.remove(st._FileStorage__file_path)
+        # reload the file should not raise an error
+        st.reload()
