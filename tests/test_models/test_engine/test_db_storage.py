@@ -6,6 +6,7 @@ Contains the TestDBStorageDocs and TestDBStorage classes
 from datetime import datetime
 import inspect
 import models
+from models import storage
 from models.engine import db_storage
 from models.amenity import Amenity
 from models.base_model import BaseModel
@@ -16,7 +17,7 @@ from models.state import State
 from models.user import User
 import json
 import os
-import pep8
+import pycodestyle
 import unittest
 DBStorage = db_storage.DBStorage
 classes = {"Amenity": Amenity, "City": City, "Place": Place,
@@ -32,14 +33,14 @@ class TestDBStorageDocs(unittest.TestCase):
 
     def test_pep8_conformance_db_storage(self):
         """Test that models/engine/db_storage.py conforms to PEP8."""
-        pep8s = pep8.StyleGuide(quiet=True)
+        pep8s = pycodestyle.StyleGuide(quiet=True)
         result = pep8s.check_files(['models/engine/db_storage.py'])
         self.assertEqual(result.total_errors, 0,
                          "Found code style errors (and warnings).")
 
     def test_pep8_conformance_test_db_storage(self):
         """Test tests/test_models/test_db_storage.py conforms to PEP8."""
-        pep8s = pep8.StyleGuide(quiet=True)
+        pep8s = pycodestyle.StyleGuide(quiet=True)
         result = pep8s.check_files(['tests/test_models/test_engine/\
 test_db_storage.py'])
         self.assertEqual(result.total_errors, 0,
@@ -66,6 +67,42 @@ test_db_storage.py'])
                              "{:s} method needs a docstring".format(func[0]))
             self.assertTrue(len(func[1].__doc__) >= 1,
                             "{:s} method needs a docstring".format(func[0]))
+
+
+class TestDBStorage(unittest.TestCase):
+
+    def test_get_method(self):
+        # Test get method with valid input
+        u = User(email='test@test.com', password='password')
+        storage.new(u)
+        storage.save()
+        obj = storage.get(User, u.id)
+        self.assertEqual(obj, u)
+        storage.delete(u)
+
+        # Test get method with invalid input
+        obj = storage.get(User, 'invalid')
+        self.assertIsNone(obj)
+
+    def test_count_method(self):
+        # Test count method with no class
+        storage.reload()
+        count = storage.count()
+        self.assertEqual(count, 0)
+        # Test count method with valid class
+        u1 = User(email='test1@test.com', password='password')
+        u2 = User(email='test2@test.com', password='password')
+        storage.new(u1)
+        storage.new(u2)
+        storage.save()
+        count = storage.count(User)
+        self.assertEqual(count, 2)
+        storage.delete(u1)
+        storage.delete(u2)
+
+        # Test count method with invalid class
+        count = storage.count(BaseModel)
+        self.assertEqual(count, 0)
 
 
 class TestFileStorage(unittest.TestCase):
