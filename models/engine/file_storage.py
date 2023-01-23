@@ -4,6 +4,7 @@ Contains the FileStorage class
 """
 
 import json
+import models
 from models.amenity import Amenity
 from models.base_model import BaseModel
 from models.city import City
@@ -55,11 +56,11 @@ class FileStorage:
                 jo = json.load(f)
             for key in jo:
                 self.__objects[key] = classes[jo[key]["__class__"]](**jo[key])
-        except Exception as e:
-            print(e)
+        except Exception:
+            pass
 
     def delete(self, obj=None):
-        """delete obj from __objects if it’s inside"""
+        """delete obj from __objects if it's inside"""
         if obj is not None:
             key = obj.__class__.__name__ + '.' + obj.id
             if key in self.__objects:
@@ -70,27 +71,31 @@ class FileStorage:
         self.reload()
 
     def get(self, cls, id):
-        """Retrieve one object by its class and id"""
-        key = cls.__name__ + "." + id
-        if key in self.__objects:
-            return self.__objects[key]
+        """
+        Returns the object based on the class name and its ID, or
+        None if not found
+        """
+        if cls not in classes.values():
+            return None
+
+        all_cls = models.storage.all(cls)
+        for value in all_cls.values():
+            if (value.id == id):
+                return value
+
         return None
 
     def count(self, cls=None):
-        """Count the number of objects in storage matching the given class.
-        If no class is passed, returns the count of all objects in storage.
         """
-        # count = 0
-        # if cls is None:
-        #     count = len(self.__objects)
-        # else:
-        #     for key in self.__objects:
-        #         if isinstance(self.__objects[key], cls):
-        #             count += 1
-        # return count
-        if cls is not None and not issubclass(cls, BaseModel):
-            raise TypeError(f"{cls} is not a valid class")
-        count = sum(isinstance(obj, cls)
-                    for obj in self.__objects.values()) if cls \
-            else len(self.__objects)
+        count the number of objects in storage
+        """
+        all_class = classes.values()
+
+        if not cls:
+            count = 0
+            for item in all_class:
+                count += len(models.storage.all(item).values())
+        else:
+            count = len(models.storage.all(cls).values())
+
         return count

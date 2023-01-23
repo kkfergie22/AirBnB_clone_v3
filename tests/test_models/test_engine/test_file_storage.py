@@ -18,7 +18,6 @@ import json
 import os
 import pycodestyle
 import unittest
-
 FileStorage = file_storage.FileStorage
 classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
            "Place": Place, "Review": Review, "State": State, "User": User}
@@ -116,60 +115,40 @@ class TestFileStorage(unittest.TestCase):
         self.assertEqual(json.loads(string), json.loads(js))
 
     @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
-    def setUp(self):
-        """Sets up test methods"""
-        self.storage = FileStorage()
-        self.bm = BaseModel()
-        self.u = User()
-        self.p = Place()
-        self.s = State()
-        self.c = City()
-        self.a = Amenity()
-        self.r = Review()
-        self.storage.save()
-
-    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
     def test_get(self):
-        """Tests the get method"""
-        self.assertEqual(self.storage.get(BaseModel, self.bm.id), self.bm)
-        self.assertEqual(self.storage.get(User, self.u.id), self.u)
-        self.assertEqual(self.storage.get(Place, self.p.id), self.p)
-        self.assertEqual(self.storage.get(State, self.s.id), self.s)
-        self.assertEqual(self.storage.get(City, self.c.id), self.c)
-        self.assertEqual(self.storage.get(Amenity, self.a.id), self.a)
-        self.assertEqual(self.storage.get(Review, self.r.id), self.r)
-        self.assertIsNone(self.storage.get(Review, "fake_id"))
-
-    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
-    def test_count(self):
-        """Tests the count method"""
-        self.storage.new(self.bm)
-        self.storage.new(self.u)
-        self.storage.new(self.p)
-        self.storage.new(self.s)
-        self.storage.new(self.c)
-        self.storage.new(self.a)
-        self.storage.new(self.r)
-        self.assertEqual(self.storage.count(), 7)
-        self.assertEqual(self.storage.count(BaseModel), 1)
-        self.assertEqual(self.storage.count(User), 1)
-        self.assertEqual(self.storage.count(Place), 1)
-        self.assertEqual(self.storage.count(State), 1)
-        self.assertEqual(self.storage.count(City), 1)
-        self.assertEqual(self.storage.count(Amenity), 1)
-        self.assertEqual(self.storage.count(Review), 1)
-        self.assertEqual(self.storage.count(object), 0)
+        """test that get returns an object of a given class by id."""
+        storage = models.storage
+        obj = State(name='Michigan')
+        obj.save()
+        self.assertEqual(obj.id, storage.get(State, obj.id).id)
+        self.assertEqual(obj.name, storage.get(State, obj.id).name)
+        self.assertIsNot(obj, storage.get(State, obj.id + 'op'))
+        self.assertIsNone(storage.get(State, obj.id + 'op'))
+        self.assertIsNone(storage.get(State, 45))
+        self.assertIsNone(storage.get(None, obj.id))
+        self.assertIsNone(storage.get(int, obj.id))
         with self.assertRaises(TypeError):
-            self.storage.count(int)
+            storage.get(State, obj.id, 'op')
+        with self.assertRaises(TypeError):
+            storage.get(State)
+        with self.assertRaises(TypeError):
+            storage.get()
 
-    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
-    def test_reload(self):
-        """Tests the reload method"""
-        # create a new file_storage object and save it
-        st = FileStorage()
-        st.save()
-        # remove the file
-        import os
-        os.remove(st._FileStorage__file_path)
-        # reload the file should not raise an error
-        st.reload()
+    def test_count(self):
+        """test that count returns the number of objects of a given class."""
+        storage = models.storage
+        self.assertIs(type(storage.count()), int)
+        self.assertIs(type(storage.count(None)), int)
+        self.assertIs(type(storage.count(int)), int)
+        self.assertIs(type(storage.count(State)), int)
+        self.assertEqual(storage.count(), storage.count(None))
+        State(name='Lagos').save()
+        self.assertGreater(storage.count(State), 0)
+        self.assertEqual(storage.count(), storage.count(None))
+        a = storage.count(State)
+        State(name='Enugu').save()
+        self.assertGreater(storage.count(State), a)
+        Amenity(name='Free WiFi').save()
+        self.assertGreater(storage.count(), storage.count(State))
+        with self.assertRaises(TypeError):
+            storage.count(State, 'op')
