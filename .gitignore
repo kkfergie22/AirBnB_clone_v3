@@ -1,2 +1,5 @@
-__pycache
+__pycache__
 newenv
+file.json
+test_get_count.py
+test.py

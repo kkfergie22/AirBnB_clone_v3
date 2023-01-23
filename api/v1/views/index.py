@@ -1,5 +1,5 @@
 from api.v1.views import app_views
-from flask import jsonify
+from flask import jsonify, request
 from models import storage
 
 
@@ -8,6 +8,7 @@ def status():
     return jsonify(status="OK")
 
 
-@app_views.route('/stats')
+@app_views.route('/stats', methods=['GET'])
 def stats():
-    return jsonify(storage.count())
+    if request.method == 'GET':
+        return jsonify(storage.count())
